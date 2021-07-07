@@ -10,35 +10,14 @@ document.addEventListener("DOMContentLoaded", function() {
     var started = 0;
     var interval = null;
 
-    // Shape 0 = circle random
-    // Shape 1 = square escape
-    // Shape 2 = rectangle chase
-    const shapes =  {
-        circle : 0,
-        square : 1,
-        rectangle : 2
-    };
+
+    // We define Circle = Random
+    //           Rectangle = Chase
+    //           Square = Escape
 class gamePiece {
 
     // Setting all the random elements
-    constructor(shape, movefunc, drawfunc, color) { 
-        if(shape === shapes.circle) {
-            this.ballRadius = Math.floor(Math.random() * 20) + 10;
-            this.randomCoords(this.ballRadius);
-        }
-        else if(shape === shapes.square) {
-            this.height = Math.floor(Math.random() * 20) + 20;
-            this.width = this.height;
-            this.randomCoords(this.height);
-        }
-        else if(shape === shapes.rectangle) {
-            this.height = Math.floor(Math.random() * 20) + 20;
-            this.width = Math.floor(Math.random() * 20) + 20;
-            this.randomCoords(this.height, this.width);
-        }
-        this.shape = shape;
-        this.movefunc = movefunc;
-        this.drawfunc = drawfunc;
+    constructor(color) { 
         if( color !== undefined) {
             this.color=color
         } else {
@@ -57,34 +36,114 @@ class gamePiece {
         if( radius == undefined) {
             radius = this.height;
         }
-        // If it's a rectangle we treat it differently, if its a square/circle we use a square bounding box to check
-        if(height !== undefined) {
-            do {
-                x = Math.floor(Math.random() * 800);
-                y = Math.floor(Math.random() * 800);
-            }
-            while((x > gameboard.width-radius || x < radius) || (y > gameboard.height-height || y < height))
-        } else {
-            do {
-                x = Math.floor(Math.random() * 800);
-                y = Math.floor(Math.random() * 800);
-            }
-            while((x > gameboard.width-radius || x < radius) || (y > gameboard.height-radius || y < radius))
+        if(height == undefined) {
+            height = radius
         }
+        do {
+            x = Math.floor(Math.random() * 800);
+            y = Math.floor(Math.random() * 800);
+        }
+        while((x > gameboard.width-radius || x < radius) || (y > gameboard.height-height || y < height))
+        
         this.x = x;
         this.y = y;
      }
 
 
     move(params) {
-        this.movefunc();
+        throw new Error("Abstract method");
     };
 
     draw() {
-        this.drawfunc(this.color);
+        throw new Error("Abstract method");
     }
 
 };
+
+class Circle extends gamePiece {
+    constructor(radius, color) {
+        super(color);
+        this.ballRadius = radius;
+        this.randomCoords(this.ballRadius);
+    }
+
+    move() {
+        // to enable randMove as rectangles modify this to check if ballRadius  = 0 if so ballRadius = this.width;
+        var ballRadius = this.ballRadius;
+        if(this.x + this.dx > gameboard.width-ballRadius || this.x + this.dx < ballRadius) {
+            this.dx = -this.dx;
+        }
+        if(this.y + this.dy > gameboard.height-ballRadius || this.y + this.dy < ballRadius) {
+            this.dy = -this.dy;
+        }
+        this.x += this.dx * this.speed;
+        this.y += this.dy * this.speed;
+    }
+
+    draw() {
+        var color = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.ballRadius, 0, Math.PI*2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+class Rectangle extends gamePiece {
+    constructor(height, width, color) {
+        super(color);
+        this.height = height;
+        this.width = width;
+        this.randomCoords(this.height, this.width);
+    }
+
+    move() { 
+        this.dx = relativeX - this.x;
+        this.dy = relativeY - this.y;
+        var distance = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
+        // We don't check that chase moves out of bounds because if the mouse moves out of bounds the game is over
+    
+        this.x += (this.dx / distance) * this.speed;
+        this.y += (this.dy / distance) * this.speed;
+
+    }
+
+    draw() {
+        var color = this.color;
+        ctx.beginPath();
+        ctx.rect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+}
+// A square is a rectangle with a width = height and a different move
+class Square extends Rectangle {
+    constructor(height, color) {
+        super(height, height, color);
+    }
+
+    move() { 
+        this.dx = this.x - relativeX;
+        this.dy = this.y - relativeY;
+        var distance = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
+        var newDx = (this.dx / distance) * 0.5;
+        var newDy = (this.dy / distance) * 0.5;
+        
+        if(this.x + newDx > gameboard.width-this.height || this.x + newDx < this.height) {
+            newDx = 0;
+        }
+        if(this.y + newDy > gameboard.height-this.height || this.y + newDy < this.height) {
+            newDy = 0;
+        }
+
+        this.x += newDx * this.speed;
+        this.y += newDy * this.speed;
+    }
+
+}
 
 // Events
 gameboard.addEventListener("mousemove", function(event) {
@@ -116,69 +175,8 @@ gameboard.addEventListener("mousedown", function(event) {
 
 })
 
-// Types of draw functions
-function drawBall() {
-    color = this.color;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.ballRadius, 0, Math.PI*2);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.closePath();
-}
-
-function drawRect() {
-    color = this.color;
-    ctx.beginPath();
-    ctx.rect(this.x, this.y, this.width, this.height);
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.closePath();
-}
-
-// Types of movement
-function randMove() {
-    // to enable randMove as rectangles modify this to check if ballRadius  = 0 if so ballRadius = this.width;
-    ballRadius = this.ballRadius;
-    if(this.x + this.dx > gameboard.width-ballRadius || this.x + this.dx < ballRadius) {
-        this.dx = -this.dx;
-    }
-    if(this.y + this.dy > gameboard.height-ballRadius || this.y + this.dy < ballRadius) {
-        this.dy = -this.dy;
-    }
-    this.x += this.dx * this.speed;
-    this.y += this.dy * this.speed;
-}
-
-function chaseMove() {
-
-    this.dx = relativeX - this.x;
-    this.dy = relativeY - this.y;
-    distance = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
-    // We don't check that chase moves out of bounds because if the mouse moves out of bounds the game is over
-
-    this.x += (this.dx / distance) * this.speed;
-    this.y += (this.dy / distance) * this.speed;
-    
-}
-
-function escapeMove() {
-
-    this.dx = this.x - relativeX;
-    this.dy = this.y - relativeY;
-    distance = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
-    newDx = (this.dx / distance) * 0.5;
-    newDy = (this.dy / distance) * 0.5;
-    
-    if(this.x + newDx > gameboard.width-this.height || this.x + newDx < this.height) {
-        newDx = 0;
-    }
-    if(this.y + newDy > gameboard.height-this.height || this.y + newDy < this.height) {
-        newDy = 0;
-    }
-    
-
-    this.x += newDx * this.speed;
-    this.y += newDy * this.speed;
+function randRadius() {
+    return (Math.floor(Math.random() * 20) + 20);
 }
 
 // Start of game
@@ -188,17 +186,18 @@ function initializeGame() {
     started = 1;
 
     // Game is setup with 2 random circles 2 chase rectangles and 1 escape square
-    testBall = new gamePiece(shapes.circle, randMove, drawBall, "#eb0909");
-    testBall2 = new gamePiece(shapes.square, escapeMove, drawRect, "#0eeb3a");
-    testBall3 = new gamePiece(shapes.rectangle, chaseMove, drawRect, "#eb0909");
-    testBall4 = new gamePiece(shapes.circle, randMove, drawBall, "#eb0909");
-    testBall5 = new gamePiece(shapes.rectangle, chaseMove, drawRect, "#eb0909");
+    newTestBall = new Rectangle(randRadius(), randRadius(), "#eb0909");
+    newTestBall2 = new Circle(randRadius(), "#eb0909");
+    newTestBall3 = new Square(randRadius(), "#0eeb3a");
+    newTestBall4 = new Circle(randRadius(), "#eb0909");
+    newTestBall5 = new Rectangle(randRadius(), randRadius(), "#eb0909");
 
-    components.push(testBall);
-    components.push(testBall2);
-    components.push(testBall3);
-    components.push(testBall4);
-    components.push(testBall5);
+
+    components.push(newTestBall);
+    components.push(newTestBall2);
+    components.push(newTestBall3);
+    components.push(newTestBall4);
+    components.push(newTestBall5);
 
     interval = setInterval(gameRun, 10);
 
@@ -249,7 +248,7 @@ function gameRun(params) {
         components[i].move();
         components[i].draw();
         if(ctx.isPointInPath(relativeX,relativeY)) {
-            if (components[i].shape == shapes.square) {
+            if(components[i] instanceof Square) {
                 foundEscape(components[i]);
             }
             else {
