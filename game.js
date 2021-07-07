@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", function() {
         square : 1,
         rectangle : 2
     };
-    console.log(shapes.rectangle);
 class gamePiece {
 
     // Setting all the random elements
@@ -43,7 +42,7 @@ class gamePiece {
         if( color !== undefined) {
             this.color=color
         } else {
-            this.color = "";
+            this.color = "#0095DD";
         }
         // We choose 2 and -2 to be the starting delta parameters arbitrarily
         this.dx = 2
@@ -81,10 +80,6 @@ class gamePiece {
         this.movefunc();
     };
 
-    printParams() {
-        console.log("x is" + this.x)
-    }
-
     draw() {
         this.drawfunc(this.color);
     }
@@ -98,7 +93,7 @@ gameboard.addEventListener("mousemove", function(event) {
     relativeX = mouseX - gameboard.offsetLeft;
     relativeY = mouseY - gameboard.offsetTop;
 })
-// add event listener on the canvas to onmouseout gameLoss
+
 gameboard.addEventListener("mouseout", function(event) {
     if(started == 1) {
         alert("No moving outside the game board!");
@@ -124,9 +119,6 @@ gameboard.addEventListener("mousedown", function(event) {
 // Types of draw functions
 function drawBall() {
     color = this.color;
-    if(this.color === "") {
-        color = "#0095DD";
-    }
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.ballRadius, 0, Math.PI*2);
     ctx.fillStyle = color;
@@ -136,9 +128,6 @@ function drawBall() {
 
 function drawRect() {
     color = this.color;
-    if(color === "") {
-        color = "#0095DD"
-    }
     ctx.beginPath();
     ctx.rect(this.x, this.y, this.width, this.height);
     ctx.fillStyle = color;
@@ -165,6 +154,7 @@ function chaseMove() {
     this.dx = relativeX - this.x;
     this.dy = relativeY - this.y;
     distance = Math.sqrt(this.dx*this.dx + this.dy*this.dy);
+    // We don't check that chase moves out of bounds because if the mouse moves out of bounds the game is over
 
     this.x += (this.dx / distance) * this.speed;
     this.y += (this.dy / distance) * this.speed;
@@ -191,19 +181,18 @@ function escapeMove() {
     this.y += newDy * this.speed;
 }
 
-
+// Start of game
 function initializeGame() {
     // Generate the elements in an array
     // start interval
     started = 1;
 
-    testBall = new gamePiece(shapes.circle, randMove, drawBall, "0095DE");
-    testBall2 = new gamePiece(shapes.square, escapeMove, drawRect);
-    testBall3 = new gamePiece(shapes.rectangle, chaseMove, drawRect);
-    testBall4 = new gamePiece(shapes.circle, randMove, drawBall);
-    testBall5 = new gamePiece(shapes.rectangle, chaseMove, drawRect);
-
-    testBall.printParams();
+    // Game is setup with 2 random circles 2 chase rectangles and 1 escape square
+    testBall = new gamePiece(shapes.circle, randMove, drawBall, "#eb0909");
+    testBall2 = new gamePiece(shapes.square, escapeMove, drawRect, "#0eeb3a");
+    testBall3 = new gamePiece(shapes.rectangle, chaseMove, drawRect, "#eb0909");
+    testBall4 = new gamePiece(shapes.circle, randMove, drawBall, "#eb0909");
+    testBall5 = new gamePiece(shapes.rectangle, chaseMove, drawRect, "#eb0909");
 
     components.push(testBall);
     components.push(testBall2);
